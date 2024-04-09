@@ -32,7 +32,7 @@ app.post('/register', async (request, response) => {
   const userDetails = request.body
   const {username, name, password, gender, location} = userDetails
 
-  const getUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
+  const getUserQuery = `SELECT * FROM user WHERE username = '${username}';`
   const dbUser = await db.get(getUserQuery)
   if (dbUser === undefined) {
     //add new user
@@ -62,3 +62,72 @@ app.post('/register', async (request, response) => {
     response.send('User already exists')
   }
 })
+
+app.post('/login', async (request, response) => {
+  const {username, password} = request.body
+  const getUserQuery = `
+  SELECT
+    *
+  FROM
+    user
+  WHERE
+    username = '${username}'
+  `
+  const dbUser = await db.get(getUserQuery)
+
+  if (dbUser === undefined) {
+    response.status(400)
+    response.send('Invalid user')
+  } else {
+    // console.log(dbUser)
+    const passwordValidation = await bcrypt.compare(password, dbUser.password)
+    if (passwordValidation === true) {
+      response.status(200)
+      response.send('Login success!')
+    } else {
+      response.status(400)
+      response.send('Invalid password')
+    }
+  }
+})
+
+app.put('/change-password', async (request, response) => {
+  const {username, oldPassword, newPassword} = request.body
+  const getUserQuery = `
+  SELECT 
+    *
+  FROM
+    user
+  WHERE
+    username = '${username}';
+  `
+  const dbUser = await db.get(getUserQuery)
+  if (dbUser === undefined) {
+    response.status(400)
+    response.send('Invalid user')
+  } else {
+    const isCorrectPassword = await bcrypt.compare(oldPassword, dbUser.password)
+    if (isCorrectPassword) {
+      if (newPassword.length < 5) {
+        response.status(400)
+        response.send('Password is too short')
+      } else {
+        const newHashPassword = await bcrypt.hash(newPassword,10)
+        const updatePasswordQuery = `
+        UPDATE 
+          user
+        SET
+          password = '${newHashPassword}';
+        `
+        await db.run(updatePasswordQuery)
+        response.status(200)
+        response.send('Password updated')
+      }
+    } else {
+      response.status(400)
+      response.send('Invalid current password')
+    }
+  }
+})
+
+module.exports = app
