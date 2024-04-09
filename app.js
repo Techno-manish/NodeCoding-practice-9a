@@ -32,7 +32,7 @@ app.post('/register', async (request, response) => {
   const userDetails = request.body
   const {username, name, password, gender, location} = userDetails
 
-  const getUserQuery = `SELECT * FROM user WHERE username = ${username};`
+  const getUserQuery = `SELECT * FROM user WHERE username = '${username}';`;
   const dbUser = await db.get(getUserQuery)
   if (dbUser === undefined) {
     //add new user
